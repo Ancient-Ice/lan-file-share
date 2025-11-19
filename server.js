@@ -225,8 +225,9 @@ async function batchDownloadFolder(encodedPath) {
       a.click();
       document.body.removeChild(a);
       idx++;
-      // 加一点间隔，避免一次性触发太猛被浏览器拦截
-      setTimeout(next, 500);
+      // 下载间隔：默认 1 秒，每完成 10 次后间隔 10 秒
+      const delay = (idx % 10 === 0) ? 10000 : 1000;
+      setTimeout(next, delay);
     }
 
     next();
