@@ -8,6 +8,168 @@ const app = express();
 // 解析表单（用于登录表单 password）
 app.use(express.urlencoded({ extended: false }));
 
+// 共享的基础样式（登录页与文件浏览页复用）
+const BASE_STYLES = `
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b1220;
+  --panel: #0d1526;
+  --card: #111b30;
+  --accent: #5eead4;
+  --accent-strong: #22d3ee;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #1f2937;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  --radius: 14px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Space Grotesk', 'Segoe UI', 'PingFang SC', 'Helvetica Neue', sans-serif;
+  background: radial-gradient(circle at 20% 20%, rgba(94, 234, 212, 0.18), transparent 35%),
+              radial-gradient(circle at 80% 0%, rgba(34, 211, 238, 0.16), transparent 30%),
+              linear-gradient(135deg, #0b1220 0%, #0f172a 60%, #0b1220 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 18px;
+  color: var(--text);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-strong); }
+.shell { width: min(1100px, 100%); }
+.glass {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.header h1 {
+  margin: 4px 0 4px;
+  font-size: 28px;
+  letter-spacing: 0.01em;
+}
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.muted { color: var(--muted); font-size: 14px; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  color: #041023;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s;
+  box-shadow: 0 10px 30px rgba(34, 211, 238, 0.25);
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s;
+}
+.item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(94, 234, 212, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+}
+.item-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.item-link { color: inherit; text-decoration: none; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.item-link:hover { color: var(--accent-strong); }
+.icon { font-size: 20px; line-height: 1; }
+.name { font-weight: 600; color: var(--text); word-break: break-all; }
+.meta { font-size: 13px; color: var(--muted); }
+.actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.path-bar {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--muted);
+}
+.form { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; color: var(--text); }
+input[type="password"] {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+.notice { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(94, 234, 212, 0.08);
+  color: var(--accent);
+  border: 1px solid rgba(94, 234, 212, 0.3);
+  font-size: 13px;
+}
+@media (max-width: 720px) {
+  body { padding: 18px 14px; }
+  .header { flex-direction: column; }
+  .actions { width: 100%; flex-wrap: wrap; }
+  .actions .btn, .actions .btn-secondary, .actions .btn-ghost { flex: 1 1 auto; justify-content: center; }
+  .item { flex-direction: column; align-items: flex-start; }
+  .actions { width: 100%; justify-content: flex-start; }
+}
+</style>
+`;
+
 // ========= 配置区域 =========
 
 // 访问密码（只有密码，没有用户名）
@@ -86,15 +248,29 @@ app.get("/login", (req, res) => {
 <head>
   <meta charset="utf-8" />
   <title>登录 - 文件共享</title>
+  ${BASE_STYLES}
 </head>
 <body>
-  <h1>文件共享登录</h1>
-  <form method="post" action="/login">
-    <label>访问密码：
-      <input type="password" name="password" />
-    </label>
-    <button type="submit">登录</button>
-  </form>
+  <main class="shell">
+    <div class="glass">
+      <header class="header">
+        <div>
+          <div class="eyebrow">LAN File Share</div>
+          <h1>登录</h1>
+          <p class="muted">输入访问密码即可浏览共享文件</p>
+        </div>
+      </header>
+
+      <form class="form" method="post" action="/login">
+        <label class="field">
+          <span>访问密码</span>
+          <input type="password" name="password" placeholder="请输入访问密码" required />
+        </label>
+        <button class="btn" type="submit">进入</button>
+        <p class="notice">提示：同一局域网内的设备可通过浏览器访问本页面。</p>
+      </form>
+    </div>
+  </main>
 </body>
 </html>
   `;
@@ -147,11 +323,21 @@ app.get("/browse", async (req, res) => {
 <head>
   <meta charset="utf-8" />
   <title>文件浏览器</title>
+  ${BASE_STYLES}
 </head>
 <body>
-  <h1>文件浏览器</h1>
-  <p>当前路径：/${rel}</p>
-  <p><a href="/logout">退出登录</a></p>
+  <main class="shell">
+    <div class="glass">
+      <header class="header">
+        <div>
+          <div class="eyebrow">LAN File Share</div>
+          <h1>文件浏览器</h1>
+          <p class="muted">当前路径：/${rel || ""}</p>
+        </div>
+        <div class="actions">
+          <a class="btn-secondary" href="/logout">退出登录</a>
+        </div>
+      </header>
 `;
 
     // 上一级
@@ -159,10 +345,16 @@ app.get("/browse", async (req, res) => {
       const idx = rel.lastIndexOf("/");
       const parentRel = idx === -1 ? "" : rel.slice(0, idx);
       const parentUrl = `/browse?path=${encodeURIComponent(parentRel)}`;
-      html += `<p><a href="${parentUrl}">⬅ 返回上一级</a></p>`;
+      html += `<div class="path-bar">当前位置：/${
+        rel || ""
+      } · <a href="${parentUrl}">返回上一级</a></div>`;
+    } else {
+      html += `<div class="path-bar">当前位置：/（根目录）</div>`;
     }
 
-    html += "<ul>";
+    html += `<div class="notice">提示：批量下载会打开多个标签页，如果被拦截请在浏览器地址栏放行弹窗。</div>`;
+
+    html += `<ul class="list">`;
 
     // 先列目录，再列文件
     const dirs = entries.filter((e) => e.isDirectory());
@@ -174,9 +366,17 @@ app.get("/browse", async (req, res) => {
       const browseUrl = `/browse?path=${encodeURIComponent(entryRel)}`;
       const dataPath = encodeURIComponent(entryRel); // 存在 data-path 中，在前端再 decode
 
-      html += `<li>
-        📁 <a href="${browseUrl}">${dir.name}</a>
-        - <a href="#" data-path="${dataPath}" onclick="batchDownloadFolder(this.dataset.path); return false;">批量下载</a>
+      html += `<li class="item">
+        <a class="item-link" href="${browseUrl}">
+          <span class="icon">📁</span>
+          <div>
+            <div class="name">${dir.name}</div>
+            <div class="meta">文件夹 · 点击进入，右侧可批量下载</div>
+          </div>
+        </a>
+        <div class="actions">
+          <button class="btn-secondary" type="button" data-path="${dataPath}" onclick="event.stopPropagation(); batchDownloadFolder(this.dataset.path);">批量下载</button>
+        </div>
       </li>`;
     }
 
@@ -184,7 +384,19 @@ app.get("/browse", async (req, res) => {
     for (const file of files) {
       const entryRel = rel ? `${rel}/${file.name}` : file.name;
       const url = `/download?path=${encodeURIComponent(entryRel)}`;
-      html += `<li>📄 <a href="${url}">${file.name}</a></li>`;
+      html += `<li class="item">
+        <div class="item-left">
+          <span class="icon">📄</span>
+          <div class="name">${file.name}</div>
+        </div>
+        <div class="actions">
+          <a class="btn" href="${url}">下载</a>
+        </div>
+      </li>`;
+    }
+
+    if (!dirs.length && !files.length) {
+      html += `<div class="notice">这个目录是空的，试着返回上一级或放一些文件进来吧。</div>`;
     }
 
     html += "</ul>";
@@ -192,7 +404,13 @@ app.get("/browse", async (req, res) => {
     // 前端脚本：批量下载（多次请求 /download）
     html += `
 <script>
+let hasShownBatchPopupHint = false;
 async function batchDownloadFolder(encodedPath) {
+  if (!hasShownBatchPopupHint) {
+    alert("首次批量下载前，请在浏览器地址栏放行此站点的弹窗（用于唤起多个下载）。");
+    hasShownBatchPopupHint = true;
+  }
+
   const relPath = decodeURIComponent(encodedPath || "");
   if (!confirm("确定要批量下载该文件夹及其所有子文件吗？\\n\\n路径: /" + relPath)) {
     return;
@@ -215,6 +433,7 @@ async function batchDownloadFolder(encodedPath) {
     let idx = 0;
     function next() {
       if (idx >= files.length) {
+        alert("任务已开始，请查看浏览器的下载列表。");
         return;
       }
       const a = document.createElement("a");
@@ -237,6 +456,8 @@ async function batchDownloadFolder(encodedPath) {
   }
 }
 </script>
+</div>
+  </main>
 </body>
 </html>
 `;
